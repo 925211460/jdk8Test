@@ -6,24 +6,37 @@ import java.nio.charset.StandardCharsets;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class jdk8Test{
 
-    private String separator = ",";
+
+    //Lambda表达式（也称为闭包）是整个Java 8发行版中最受期待的在Java语言层面上的改变，Lambda允许把函数作为一个方法的参数
+    //函数式程序员对这一概念非常熟悉。在JVM平台上的很多语言（Groovy，Scala，……）从一开始就有Lambda，但是Java程序员不得不使用毫无新意的匿名类来代替lambda。
+    //在最简单的形式中，一个lambda可以由用逗号分隔的参数列表、–>符号与函数体三部分表示
+
+    //语言设计者投入了大量精力来思考如何使现有的函数友好地支持lambda。
+    // 最终采取的方法是：增加函数式接口的概念。函数式接口就是一个具有一个方法的普通接口。像这样的接口，可以被隐式转换为lambda表达式。
+    // java.lang.Runnable与java.util.concurrent.Callable是函数式接口最典型的两个例子。
+    // 在实际使用过程中，函数式接口是容易出错的：如有某个人在接口定义中增加了另一个方法，这时，这个接口就不再是函数式的了，并且编译过程也会失败。为了克服函数式接口的这种脆弱性并且能够明确声明接口作为函数式接口的意图，Java 8增加了一种特殊的注解@FunctionalInterface（Java 8中所有类库的已有接口都添加了@FunctionalInterface注解）。
+    //需要记住的一件事是：默认方法与静态方法并不影响函数式接口的契约，可以任意使用
 
     @Test
     public void test1(){
-        Arrays.asList("a","b","c").forEach(e -> System.out.println(e));
-
-        Arrays.asList("1","2","3").forEach(e -> {
-            System.out.println("我要开始输出了");
-            System.out.println(e);
+        //传统方式，匿名内部类
+        Arrays.asList("a","b","c").forEach(new Consumer<String>() {
+            @Override
+            public void accept(String e) {
+                System.out.println(e);
+            }
         });
 
-        Arrays.asList("e","f").forEach(e -> System.out.println(e+separator));
+        //jdk8的lambda表达式实现同样的效果
+        Arrays.asList("a","b","c").forEach(e -> System.out.println(e));
     }
 
+    //Lambda可能会返回一个值。返回值的类型也是由编译器推测出来的。如果lambda的函数体只有一行的话，那么没有必要显式使用return语句。下面两个代码片段是等价的：
     @Test
     public void test2(){
         Arrays.asList("3","1","2").sort((e1, e2) -> e1.compareTo(e2));
@@ -34,12 +47,22 @@ public class jdk8Test{
         });
     }
 
+    //接口的默认方法与静态方法
+    //Java 8用默认方法与静态方法这两个新概念来扩展接口的声明。默认方法允许在已有的接口中添加新方法，而同时又保持了与旧版本代码的兼容性。
+    //每个接口都必须提供一个所谓的默认实现，这样所有的接口实现者将会默认继承它（如果有必要的话，可以覆盖这个默认实现）
+    //Java 8带来的另一个有趣的特性是接口可以声明（并且可以提供实现）静态方法。
+    //默认方法允许继续使用现有的Java接口，而同时能够保障正常的编译过程。这方面好的例子是大量的方法被添加到java.util.Collection接口中去：stream()，parallelStream()，forEach()，removeIf()，……
+
     @Test
     public void test3(){
         DogImpl dog = new DogImpl();
         dog.eat();
         dog.play();
     }
+
+
+    //方法引用
+    //方法引用提供了非常有用的语法，可以直接引用已有Java类或对象（实例）的方法或构造器。与lambda联合使用，方法引用可以使语言的构造更紧凑简洁，减少冗余代码。
 
     @Test
     public void test4(){
@@ -60,6 +83,7 @@ public class jdk8Test{
 
     }
 
+    //重复注解
     @Test
     public void test5(){
         //测试重复注解
@@ -68,15 +92,25 @@ public class jdk8Test{
         }
     }
 
+    //Java 类库的新特性
+    //Java 8 通过增加大量新类，扩展已有类的功能的方式来改善对并发编程、函数式编程、日期/时间相关操作以及其他更多方面的支持。
+
 
     /**
-     * 到目前为止，臭名昭著的空指针异常是导致Java应用程序失败的最常见原因。以前，为了解决空指针异常，Google公司著名的Guava项目引入了Optional类，Guava通过使用检查空值的方式来防止代码污染，它鼓励程序员写更干净的代码。受到Google Guava的启发，Optional类已经成为Java 8类库的一部分。
+     * 到目前为止，臭名昭著的空指针异常是导致Java应用程序失败的最常见原因。
+     * 以前，为了解决空指针异常，Google公司著名的Guava项目引入了Optional类，Guava通过使用检查空值的方式来防止代码污染，它鼓励程序员写更干净的代码。
+     * 受到Google Guava的启发，Optional类已经成为Java 8类库的一部分。
+     *
+     * Optional实际上是个容器：它可以保存类型T的值，或者仅仅保存null。Optional提供很多有用的方法，这样我们就不用显式进行空值检测
+     *
+     * 如果Optional类的实例为非空值的话，isPresent()返回true，否从返回false。为了防止Optional为空值，orElseGet()方法通过回调函数来产生一个默认值。
+     * map()函数对当前Optional的值进行转化，然后返回一个新的Optional实例。orElse()方法和orElseGet()方法类似，但是orElse接受一个默认值而不是一个回调函数。
      */
     @Test
     public void test6(){
         Optional< String > fullName = Optional.ofNullable( null );
         System.out.println( "Full Name is set? " + fullName.isPresent() );
-        System.out.println( "Full Name: " + fullName.orElseGet( () -> "[none]" ) );
+        System.out.println( "Full Name: " + fullName.orElseGet( () -> "[none]"));
         System.out.println( fullName.map( s -> "Hey " + s + "!" ).orElse( "Hey Stranger!" ) );
     }
 
@@ -89,6 +123,11 @@ public class jdk8Test{
 
      像forEach、sum这样的最终操作可能直接遍历stream，产生一个结果或副作用。当最终操作执行结束之后，stream管道被认为已经被消耗了，没有可能再被使用了。在大多数情况下，最终操作都是采用及早求值方式，及早完成底层数据源的遍历。
      */
+    /**
+     * Stream
+     * 最新添加的Stream API（java.util.stream） 把真正的函数式编程风格引入到Java中。这是目前为止对Java类库最好的补充，因为Stream API可以极大提供Java程序员的生产力，让程序员写出高效率、干净、简洁的代码
+     * Stream API极大简化了集合框架的处理（但它的处理的范围不仅仅限于集合框架的处理，这点后面我们会看到
+     */
     @Test
     public void test7(){
         List<Task> tasks = Arrays.asList(
@@ -96,7 +135,8 @@ public class jdk8Test{
                 new Task( Status.OPEN, 13 ),
                 new Task( Status.CLOSED, 8 )
         );
-        //所有状态为OPEN的任务一共有多少分数
+        //需求：所有状态为OPEN的任务一共有多少分数？
+        // 在Java 8以前，一般的解决方式用foreach循环，但是在Java 8里面我们可以使用stream：一串支持连续、并行聚集操作的元素。
         long totalPointsOfOpenTasks = tasks
         .stream()
         .filter(task -> task.getStatus() == Status.OPEN)
